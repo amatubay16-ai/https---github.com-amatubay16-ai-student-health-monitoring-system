@@ -90,42 +90,84 @@ async function command(sql, params = []) {
   return result;
 }
 
-/* =========================
-   AUTH ACCOUNTS (MATCH DB)
-========================= */
+let usersLoginColumn;
 
-const demoAccounts = [
-  { username: "student1@gmail.com", password: "student123", role: "student", studentId: 1 },
-  { username: "nurse@gmail.com", password: "nurse123", role: "nurse" },
-  { username: "admin@gmail.com", password: "admin123", role: "admin" },
-];
+async function getUsersLoginColumn() {
+  if (usersLoginColumn) return usersLoginColumn;
+
+  const columns = await query("SHOW COLUMNS FROM users");
+  const fields = columns.map((column) => column.Field);
+
+  if (fields.includes("username")) {
+    usersLoginColumn = "username";
+  } else if (fields.includes("email")) {
+    usersLoginColumn = "email";
+  } else {
+    throw new Error("Users table must have a username or email column");
+  }
+
+  return usersLoginColumn;
+}
 
 /* =========================
    AUTH LOGIN
 ========================= */
 
 app.post("/auth/login", async (req, res) => {
-  const { username, password } = req.body;
+  const username = String(req.body.username || "").trim();
+  const password = String(req.body.password || "");
+  const role = String(req.body.role || "").trim();
 
-  const user = demoAccounts.find(
-    (u) => u.username === username && u.password === password
-  );
-
-  if (!user) {
-    return res.status(401).json({ message: "Invalid credentials" });
+  if (!username || !password || !role) {
+    return res.status(400).json({ message: "Username, password, and role are required" });
   }
 
-  const token = crypto.randomBytes(32).toString("hex");
+  try {
+    const loginColumn = await getUsersLoginColumn();
+    const shortUsername = username.includes("@") ? username.split("@")[0] : username;
+    const loginWhere =
+      loginColumn === "email"
+        ? "(email = ? OR SUBSTRING_INDEX(email, '@', 1) = ?)"
+        : "(username = ? OR username = ?)";
 
-  sessionStore.set(token, {
-    user,
-    expires: Date.now() + 8 * 60 * 60 * 1000,
-  });
+    const users = await query(
+      `SELECT id, ${loginColumn} AS username, role, student_id
+       FROM users
+       WHERE ${loginWhere}
+         AND password = ?
+         AND role = ?
+       LIMIT 1`,
+      [username, shortUsername, password, role]
+    );
 
-  res.json({
-    token,
-    user,
-  });
+    const account = users[0];
+
+    if (!account) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    const user = {
+      id: account.id,
+      username: account.username,
+      role: account.role,
+      studentId: account.student_id,
+    };
+
+    const token = crypto.randomBytes(32).toString("hex");
+
+    sessionStore.set(token, {
+      user,
+      expires: Date.now() + 8 * 60 * 60 * 1000,
+    });
+
+    res.json({
+      token,
+      user,
+    });
+  } catch (err) {
+    console.error("Login failed:", err.message);
+    res.status(500).json({ message: "Login is temporarily unavailable" });
+  }
 });
 
 /* =========================
