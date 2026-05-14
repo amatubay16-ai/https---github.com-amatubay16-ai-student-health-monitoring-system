@@ -698,7 +698,7 @@ clinicVisitForm.addEventListener("submit", async (event) => {
       method: "POST",
       body: JSON.stringify(formData(form)),
     });
-    await refreshAfterEntry(form, `${result.message} Page refreshed and ready for another visit.`);
+    await refreshAfterEntry(form, `${result.message} Page refreshed and ready for another visit.`, result.studentId);
   }).catch((error) => setStatus(error.message, true));
 });
 
@@ -813,7 +813,11 @@ adminClinicVisitForm.addEventListener("submit", async (event) => {
       method: visitId ? "PUT" : "POST",
       body: JSON.stringify(data),
     });
-    await refreshAfterEntry(form, `${result.message} Page refreshed and ready for another visit.`);
+    await refreshAfterEntry(
+      form,
+      `${result.message} Page refreshed and ready for another visit.`,
+      result.studentId || data.studentId
+    );
   }).catch((error) => setStatus(error.message, true));
 });
 
@@ -826,8 +830,7 @@ document.querySelector("#deleteClinicVisitButton").addEventListener("click", asy
 
   await runButtonAction(event.currentTarget, "Deleting...", async () => {
     const result = await api(`/clinic-visits/${visitId}`, { method: "DELETE" });
-    setStatus(result.message);
-    await refreshAfterEntry(adminClinicVisitForm);
+    await refreshAfterEntry(adminClinicVisitForm, result.message, result.studentId);
   }).catch((error) => setStatus(error.message, true));
 });
 
@@ -850,7 +853,7 @@ adminMedicalNoteForm.addEventListener("submit", async (event) => {
       method: noteId ? "PUT" : "POST",
       body: JSON.stringify(data),
     });
-    await refreshAfterEntry(form, result.message, studentId);
+    await refreshAfterEntry(form, result.message, result.studentId || studentId);
   }).catch((error) => setStatus(error.message, true));
 });
 
@@ -863,8 +866,7 @@ document.querySelector("#deleteMedicalNoteButton").addEventListener("click", asy
 
   await runButtonAction(event.currentTarget, "Deleting...", async () => {
     const result = await api(`/medical-notes/${noteId}`, { method: "DELETE" });
-    setStatus(result.message);
-    await refreshAfterEntry(adminMedicalNoteForm);
+    await refreshAfterEntry(adminMedicalNoteForm, result.message, result.studentId);
   }).catch((error) => setStatus(error.message, true));
 });
 

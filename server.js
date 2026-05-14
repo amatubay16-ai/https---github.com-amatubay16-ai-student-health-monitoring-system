@@ -492,11 +492,17 @@ app.post("/clinic-visits", asyncRoute(async (req, res) => {
     ]
   );
 
-  res.json({ message: "Clinic visit saved successfully", visitId: result.insertId });
+  res.json({ message: "Clinic visit saved successfully", visitId: result.insertId, studentId: visit.student_id });
 }));
 
 app.put("/clinic-visits/:id", asyncRoute(async (req, res) => {
   if (!requireRole(req, res, ["admin"])) return;
+
+  const [existingVisit] = await query("SELECT student_id FROM clinic_visits WHERE id = ?", [req.params.id]);
+
+  if (!existingVisit) {
+    return res.status(404).json({ message: "Clinic visit not found" });
+  }
 
   const visit = clinicVisitPayload(req.body);
   delete visit.student_id;
@@ -513,18 +519,19 @@ app.put("/clinic-visits/:id", asyncRoute(async (req, res) => {
     [...entries.map(([, value]) => value), req.params.id]
   );
 
-  if (result.affectedRows === 0) {
-    return res.status(404).json({ message: "Clinic visit not found" });
-  }
-
-  res.json({ message: "Clinic visit saved successfully" });
+  res.json({ message: "Clinic visit saved successfully", studentId: existingVisit.student_id });
 }));
 
 app.delete("/clinic-visits/:id", asyncRoute(async (req, res) => {
   if (!requireRole(req, res, ["admin"])) return;
 
+  const [existingVisit] = await query("SELECT student_id FROM clinic_visits WHERE id = ?", [req.params.id]);
   const result = await command("DELETE FROM clinic_visits WHERE id = ?", [req.params.id]);
-  res.json({ message: "Clinic visit deleted successfully", deleted: result.affectedRows });
+  res.json({
+    message: "Clinic visit deleted successfully",
+    deleted: result.affectedRows,
+    studentId: existingVisit?.student_id || null,
+  });
 }));
 
 app.post("/students/:id/medical-notes", asyncRoute(async (req, res) => {
@@ -540,30 +547,37 @@ app.post("/students/:id/medical-notes", asyncRoute(async (req, res) => {
     [req.params.id, req.body.note, req.user.username]
   );
 
-  res.json({ message: "Medical note saved successfully", noteId: result.insertId });
+  res.json({ message: "Medical note saved successfully", noteId: result.insertId, studentId: req.params.id });
 }));
 
 app.put("/medical-notes/:id", asyncRoute(async (req, res) => {
   if (!requireRole(req, res, ["admin"])) return;
 
+  const [existingNote] = await query("SELECT student_id FROM medical_notes WHERE id = ?", [req.params.id]);
+
+  if (!existingNote) {
+    return res.status(404).json({ message: "Medical note not found" });
+  }
+
   if (!req.body.note) {
     return res.status(400).json({ message: "Medical note is required" });
   }
 
-  const result = await command("UPDATE medical_notes SET note = ? WHERE id = ?", [req.body.note, req.params.id]);
+  await command("UPDATE medical_notes SET note = ? WHERE id = ?", [req.body.note, req.params.id]);
 
-  if (result.affectedRows === 0) {
-    return res.status(404).json({ message: "Medical note not found" });
-  }
-
-  res.json({ message: "Medical note saved successfully" });
+  res.json({ message: "Medical note saved successfully", studentId: existingNote.student_id });
 }));
 
 app.delete("/medical-notes/:id", asyncRoute(async (req, res) => {
   if (!requireRole(req, res, ["admin"])) return;
 
+  const [existingNote] = await query("SELECT student_id FROM medical_notes WHERE id = ?", [req.params.id]);
   const result = await command("DELETE FROM medical_notes WHERE id = ?", [req.params.id]);
-  res.json({ message: "Medical note deleted successfully", deleted: result.affectedRows });
+  res.json({
+    message: "Medical note deleted successfully",
+    deleted: result.affectedRows,
+    studentId: existingNote?.student_id || null,
+  });
 }));
 
 app.get("/records-dashboard", asyncRoute(async (_req, res) => {
