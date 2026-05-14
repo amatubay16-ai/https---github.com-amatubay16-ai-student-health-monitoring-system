@@ -62,16 +62,6 @@ const pool = mysql.createPool({
 const sessionStore = new Map();
 
 /* =========================
-   DEMO ACCOUNTS
-========================= */
-
-const demoAccounts = [
-  { username: "student1", password: "student123", role: "student", studentId: 1 },
-  { username: "nurse", password: "nurse123", role: "nurse" },
-  { username: "admin", password: "admin123", role: "admin" },
-];
-
-/* =========================
    HELPERS
 ========================= */
 
@@ -90,134 +80,40 @@ function bmiCategory(bmi) {
   return "Obese";
 }
 
-/* =========================
-   DB HELPERS
-========================= */
-
-async function query(sql, params) {
+async function query(sql, params = []) {
   const [rows] = await pool.execute(sql, params);
   return rows;
 }
 
-async function command(sql, params) {
+async function command(sql, params = []) {
   const [result] = await pool.execute(sql, params);
   return result;
 }
 
 /* =========================
-   INIT DATABASE
+   AUTH ACCOUNTS (MATCH DB)
 ========================= */
 
-async function ensureDatabaseSchema() {
-  await command(`
-    CREATE TABLE IF NOT EXISTS students (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      student_number VARCHAR(50) UNIQUE,
-      first_name VARCHAR(100),
-      last_name VARCHAR(100),
-      date_of_birth DATE,
-      sex VARCHAR(20),
-      grade_level VARCHAR(50),
-      section VARCHAR(50),
-      guardian_name VARCHAR(150),
-      guardian_contact VARCHAR(100),
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
-
-  await command(`
-    CREATE TABLE IF NOT EXISTS users (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      username VARCHAR(100) UNIQUE,
-      password VARCHAR(255),
-      role VARCHAR(20),
-      student_id INT NULL
-    )
-  `);
-
-  await command(`
-    CREATE TABLE IF NOT EXISTS health_records (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      student_id INT UNIQUE,
-      blood_type VARCHAR(10),
-      allergies TEXT,
-      chronic_conditions TEXT,
-      medications TEXT,
-      height_cm DECIMAL(5,2),
-      weight_kg DECIMAL(5,2),
-      bmi DECIMAL(5,2),
-      bmi_category VARCHAR(50),
-      immunization_status TEXT
-    )
-  `);
-
-  await command(`
-    CREATE TABLE IF NOT EXISTS clinic_visits (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      student_id INT,
-      visit_date DATETIME DEFAULT CURRENT_TIMESTAMP,
-      reason VARCHAR(255),
-      symptoms TEXT,
-      treatment TEXT,
-      disposition VARCHAR(100),
-      recorded_by VARCHAR(100)
-    )
-  `);
-
-  await command(`
-    CREATE TABLE IF NOT EXISTS medical_notes (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      student_id INT,
-      note TEXT,
-      created_by VARCHAR(100)
-    )
-  `);
-}
+const demoAccounts = [
+  { username: "student1@gmail.com", password: "student123", role: "student", studentId: 1 },
+  { username: "nurse@gmail.com", password: "nurse123", role: "nurse" },
+  { username: "admin@gmail.com", password: "admin123", role: "admin" },
+];
 
 /* =========================
-   SEED DATA
+   AUTH LOGIN
 ========================= */
 
-async function seedDemoData() {
-  await command(`
-    INSERT INTO students (id, student_number, first_name, last_name, sex, grade_level, section)
-    VALUES (1, 'STU-001', 'Demo', 'Student', 'Female', 'Grade 8', 'Rose')
-    ON DUPLICATE KEY UPDATE first_name=VALUES(first_name)
-  `);
-
-  await command(`
-    INSERT INTO users (username, password, role, student_id)
-    VALUES
-      ('student1','student123','student',1),
-      ('nurse','nurse123','nurse',NULL),
-      ('admin','admin123','admin',NULL)
-    ON DUPLICATE KEY UPDATE password=VALUES(password)
-  `);
-
-  const bmi = calculateBmi(150, 45);
-  const category = bmiCategory(bmi);
-
-  await command(`
-    INSERT INTO health_records
-    (student_id, blood_type, allergies, chronic_conditions, medications, height_cm, weight_kg, bmi, bmi_category, immunization_status)
-    VALUES
-    (1,'O+','None','None','None',150,45,${bmi},'${category}','Complete')
-    ON DUPLICATE KEY UPDATE bmi=VALUES(bmi), bmi_category=VALUES(bmi_category)
-  `);
-}
-
-/* =========================
-   AUTH
-========================= */
-
-app.post("/auth/login", (req, res) => {
-  const { username, password, role } = req.body;
+app.post("/auth/login", async (req, res) => {
+  const { username, password } = req.body;
 
   const user = demoAccounts.find(
-    (u) => u.username === username && u.password === password && u.role === role
+    (u) => u.username === username && u.password === password
   );
 
-  if (!user) return res.status(401).json({ message: "Invalid credentials" });
+  if (!user) {
+    return res.status(401).json({ message: "Invalid credentials" });
+  }
 
   const token = crypto.randomBytes(32).toString("hex");
 
@@ -226,7 +122,10 @@ app.post("/auth/login", (req, res) => {
     expires: Date.now() + 8 * 60 * 60 * 1000,
   });
 
-  res.json({ token, user });
+  res.json({
+    token,
+    user,
+  });
 });
 
 /* =========================
@@ -235,6 +134,11 @@ app.post("/auth/login", (req, res) => {
 
 function auth(req, res, next) {
   const token = req.headers.authorization?.split(" ")[1];
+
+  if (!token) {
+    return res.status(401).json({ message: "No token provided" });
+  }
+
   const session = sessionStore.get(token);
 
   if (!session || session.expires < Date.now()) {
@@ -249,12 +153,30 @@ function auth(req, res, next) {
 app.use(auth);
 
 /* =========================
+   AUTH ME + LOGOUT
+========================= */
+
+app.get("/auth/me", (req, res) => {
+  res.json(req.user);
+});
+
+app.post("/auth/logout", (req, res) => {
+  sessionStore.delete(req.token);
+  res.json({ message: "Logged out successfully" });
+});
+
+/* =========================
    STUDENTS API
 ========================= */
 
 app.get("/students", async (req, res) => {
   const data = await query("SELECT * FROM students");
   res.json(data);
+});
+
+app.get("/students/:id", async (req, res) => {
+  const data = await query("SELECT * FROM students WHERE id=?", [req.params.id]);
+  res.json(data[0] || {});
 });
 
 app.post("/students", async (req, res) => {
@@ -270,12 +192,18 @@ app.post("/students", async (req, res) => {
   const category = bmiCategory(bmi);
 
   await command(
-    `INSERT INTO health_records (student_id, height_cm, weight_kg, bmi, bmi_category)
-     VALUES (?,?,?,?,?)`,
+    `INSERT INTO health_records 
+    (student_id, height_cm, weight_kg, bmi, bmi_category)
+    VALUES (?,?,?,?,?)`,
     [result.insertId, heightCm, weightKg, bmi, category]
   );
 
-  res.json({ message: "Student added", id: result.insertId });
+  res.json({
+    message: "Student created successfully",
+    studentId: result.insertId,
+    bmi,
+    category,
+  });
 });
 
 /* =========================
@@ -284,21 +212,23 @@ app.post("/students", async (req, res) => {
 
 app.get("/health", async (req, res) => {
   const [r] = await pool.query("SELECT NOW() AS time");
-  res.json({ ok: true, time: r[0].time });
+  res.json({ status: "ok", time: r[0].time });
 });
 
 /* =========================
    START SERVER
 ========================= */
 
-ensureDatabaseSchema()
-  .then(seedDemoData)
-  .then(() => {
-    app.listen(port, () => {
-      console.log("Server running on port", port);
+(async () => {
+  try {
+    console.log("Connecting to database...");
+    console.log("DB:", dbConfig.database);
+
+    app.listen(port, "0.0.0.0", () => {
+      console.log(`🚀 Server running on port ${port}`);
     });
-  })
-  .catch((err) => {
+  } catch (err) {
     console.error("DB Setup Failed:", err.message);
     process.exit(1);
-  });
+  }
+})();

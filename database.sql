@@ -20,11 +20,11 @@ CREATE TABLE IF NOT EXISTS students (
 );
 
 -- =========================
--- USERS / ACCOUNTS TABLE
+-- USERS TABLE (EMAIL LOGIN - FINAL)
 -- =========================
 CREATE TABLE IF NOT EXISTS users (
   id INT AUTO_INCREMENT PRIMARY KEY,
-  username VARCHAR(100) NOT NULL UNIQUE,
+  email VARCHAR(150) NOT NULL UNIQUE,
   password VARCHAR(255) NOT NULL,
   role ENUM('student','nurse','admin') NOT NULL,
   student_id INT NULL,
@@ -36,7 +36,7 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 -- =========================
--- HEALTH RECORDS (FIXED)
+-- HEALTH RECORDS
 -- =========================
 CREATE TABLE IF NOT EXISTS health_records (
   id INT AUTO_INCREMENT PRIMARY KEY,
@@ -48,10 +48,7 @@ CREATE TABLE IF NOT EXISTS health_records (
   height_cm DECIMAL(5,2) NULL,
   weight_kg DECIMAL(5,2) NULL,
   bmi DECIMAL(5,2) NULL,
-
-  -- ✅ FIX: REQUIRED COLUMN
   bmi_category VARCHAR(50) NULL,
-
   immunization_status TEXT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -126,13 +123,13 @@ ON DUPLICATE KEY UPDATE
 first_name = VALUES(first_name);
 
 -- =========================
--- DEMO USERS
+-- DEMO USERS (LOGIN ACCOUNTS)
 -- =========================
-INSERT INTO users (username, password, role, student_id)
+INSERT INTO users (email, password, role, student_id)
 VALUES
-('student1', 'student123', 'student', 1),
-('nurse', 'nurse123', 'nurse', NULL),
-('admin', 'admin123', 'admin', NULL)
+('student1@gmail.com', 'student123', 'student', 1),
+('nurse@gmail.com', 'nurse123', 'nurse', NULL),
+('admin@gmail.com', 'admin123', 'admin', NULL)
 ON DUPLICATE KEY UPDATE
 password = VALUES(password);
 
@@ -159,8 +156,6 @@ VALUES (
   'None',
   150,
   45,
-
-  -- BMI = 45 / (1.5 * 1.5) = 20
   20.00,
   'Normal',
   'Complete'
