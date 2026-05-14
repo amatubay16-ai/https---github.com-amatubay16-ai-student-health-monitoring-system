@@ -121,7 +121,7 @@ function setVisitDateTimeDefault(form) {
   }
 }
 
-async function refreshAfterEntry(form, readyMessage) {
+async function refreshAfterEntry(form, readyMessage, refreshStudentId = form?.elements?.studentId?.value) {
   if (form === healthRecordForm) {
     resetHealthRecordForm();
   } else if (form && typeof form.reset === "function") {
@@ -130,6 +130,15 @@ async function refreshAfterEntry(form, readyMessage) {
   }
 
   await Promise.all([loadRecordsDashboard(), loadStudents()]);
+
+  if (refreshStudentId) {
+    studentIdInput.value = refreshStudentId;
+    await loadAccount();
+
+    if (session?.user?.role === "admin") {
+      await loadAdminStudentAccount(refreshStudentId);
+    }
+  }
 
   if (readyMessage) {
     setStatus(readyMessage);
@@ -199,8 +208,9 @@ function applySession() {
 
   const user = session.user;
   const availableViews = roleViews[user.role] || [];
+  const displayName = user.name || user.username || "Signed-in user";
   document.body.classList.add("is-authenticated");
-  accountName.textContent = user.name;
+  accountName.textContent = displayName;
   accountRole.textContent = user.role;
   roleDescription.textContent = descriptions[user.role];
 
@@ -216,7 +226,7 @@ function applySession() {
   });
 
   showView("recordsDashboardView");
-  setStatus(`Signed in as ${user.name}.`);
+  setStatus(`Signed in as ${displayName}.`);
 }
 
 function saveSession(nextSession) {
@@ -665,7 +675,14 @@ document.querySelector("#registerStudentForm").addEventListener("submit", async 
       method: "POST",
       body: JSON.stringify(formData(form)),
     });
-    await refreshAfterEntry(form, `${result.message} Page refreshed and ready for another student.`);
+    const accountText = result.accountUsername
+      ? ` Student login: ${result.accountUsername} / ${result.accountUsername}.`
+      : "";
+    await refreshAfterEntry(
+      form,
+      `${result.message}.${accountText} Page refreshed and ready for another student.`,
+      result.studentId
+    );
   }).catch((error) => setStatus(error.message, true));
 });
 
@@ -696,8 +713,7 @@ document.querySelector("#medicalNoteForm").addEventListener("submit", async (eve
       method: "POST",
       body: JSON.stringify({ note: data.note }),
     });
-    setStatus(result.message);
-    await refreshAfterEntry(form);
+    await refreshAfterEntry(form, result.message, data.studentId);
   }).catch((error) => setStatus(error.message, true));
 });
 
@@ -714,7 +730,14 @@ document.querySelector("#adminStudentForm").addEventListener("submit", async (ev
       method: studentId ? "PUT" : "POST",
       body: JSON.stringify(data),
     });
-    await refreshAfterEntry(form, `${result.message || "Student saved."} Page refreshed and ready for another student.`);
+    const accountText = result.accountUsername
+      ? ` Student login: ${result.accountUsername} / ${result.accountUsername}.`
+      : "";
+    await refreshAfterEntry(
+      form,
+      `${result.message || "Student saved."}.${accountText} Page refreshed and ready for another student.`,
+      studentId || result.studentId
+    );
   }).catch((error) => setStatus(error.message, true));
 });
 
@@ -751,8 +774,7 @@ healthRecordForm.addEventListener("submit", async (event) => {
       method: "PUT",
       body: JSON.stringify(data),
     });
-    setStatus(result.message);
-    await refreshAfterEntry(form);
+    await refreshAfterEntry(form, result.message, studentId);
   }).catch((error) => setStatus(error.message, true));
 });
 
@@ -828,8 +850,7 @@ adminMedicalNoteForm.addEventListener("submit", async (event) => {
       method: noteId ? "PUT" : "POST",
       body: JSON.stringify(data),
     });
-    setStatus(result.message);
-    await refreshAfterEntry(form);
+    await refreshAfterEntry(form, result.message, studentId);
   }).catch((error) => setStatus(error.message, true));
 });
 
@@ -855,7 +876,7 @@ async function restoreSession() {
 
   try {
     const result = await api("/auth/me");
-    session.user = result.user;
+    session.user = result.user || result;
     localStorage.setItem("healthMonitorSession", JSON.stringify(session));
     applySession();
   } catch (_error) {
