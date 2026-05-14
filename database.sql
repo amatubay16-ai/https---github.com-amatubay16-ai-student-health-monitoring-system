@@ -93,7 +93,7 @@ CREATE TABLE IF NOT EXISTS medical_notes (
 );
 
 -- =========================
--- DEMO STUDENT
+-- DEMO STUDENTS
 -- =========================
 INSERT INTO students (
   id,
@@ -107,7 +107,8 @@ INSERT INTO students (
   guardian_name,
   guardian_contact
 )
-VALUES (
+VALUES
+(
   1,
   'STU-001',
   'Demo',
@@ -118,6 +119,126 @@ VALUES (
   'Rose',
   'Maria Student',
   '09170000001'
+),
+(
+  2,
+  'STU-002',
+  'Aira',
+  'Santos',
+  '2011-03-22',
+  'Female',
+  'Grade 7',
+  'Daisy',
+  'Lorna Santos',
+  '09170000002'
+),
+(
+  3,
+  'STU-003',
+  'Miguel',
+  'Reyes',
+  '2010-08-11',
+  'Male',
+  'Grade 8',
+  'Rose',
+  'Carlo Reyes',
+  '09170000003'
+),
+(
+  4,
+  'STU-004',
+  'Jasmine',
+  'Cruz',
+  '2009-12-05',
+  'Female',
+  'Grade 9',
+  'Orchid',
+  'Elena Cruz',
+  '09170000004'
+),
+(
+  5,
+  'STU-005',
+  'Nathan',
+  'Garcia',
+  '2011-06-18',
+  'Male',
+  'Grade 7',
+  'Daisy',
+  'Ramon Garcia',
+  '09170000005'
+),
+(
+  6,
+  'STU-006',
+  'Bianca',
+  'Mendoza',
+  '2010-04-27',
+  'Female',
+  'Grade 8',
+  'Lily',
+  'Grace Mendoza',
+  '09170000006'
+),
+(
+  7,
+  'STU-007',
+  'Paolo',
+  'Villanueva',
+  '2009-09-14',
+  'Male',
+  'Grade 9',
+  'Orchid',
+  'Mark Villanueva',
+  '09170000007'
+),
+(
+  8,
+  'STU-008',
+  'Sofia',
+  'Lim',
+  '2012-01-30',
+  'Female',
+  'Grade 6',
+  'Tulip',
+  'Andrea Lim',
+  '09170000008'
+),
+(
+  9,
+  'STU-009',
+  'Daniel',
+  'Torres',
+  '2011-11-09',
+  'Male',
+  'Grade 7',
+  'Sampaguita',
+  'Jose Torres',
+  '09170000009'
+),
+(
+  10,
+  'STU-010',
+  'Mika',
+  'Flores',
+  '2010-07-03',
+  'Female',
+  'Grade 8',
+  'Lily',
+  'Catherine Flores',
+  '09170000010'
+),
+(
+  11,
+  'STU-011',
+  'Rafael',
+  'Navarro',
+  '2009-02-16',
+  'Male',
+  'Grade 9',
+  'Orchid',
+  'Teresa Navarro',
+  '09170000011'
 )
 ON DUPLICATE KEY UPDATE
 first_name = VALUES(first_name);
@@ -128,6 +249,16 @@ first_name = VALUES(first_name);
 INSERT INTO users (email, password, role, student_id)
 VALUES
 ('student1@gmail.com', 'student123', 'student', 1),
+('student2@gmail.com', 'student123', 'student', 2),
+('student3@gmail.com', 'student123', 'student', 3),
+('student4@gmail.com', 'student123', 'student', 4),
+('student5@gmail.com', 'student123', 'student', 5),
+('student6@gmail.com', 'student123', 'student', 6),
+('student7@gmail.com', 'student123', 'student', 7),
+('student8@gmail.com', 'student123', 'student', 8),
+('student9@gmail.com', 'student123', 'student', 9),
+('student10@gmail.com', 'student123', 'student', 10),
+('student11@gmail.com', 'student123', 'student', 11),
 ('nurse@gmail.com', 'nurse123', 'nurse', NULL),
 ('admin@gmail.com', 'admin123', 'admin', NULL)
 ON DUPLICATE KEY UPDATE
@@ -148,7 +279,8 @@ INSERT INTO health_records (
   bmi_category,
   immunization_status
 )
-VALUES (
+VALUES
+(
   1,
   'O+',
   'None',
@@ -157,6 +289,126 @@ VALUES (
   150,
   45,
   20.00,
+  'Normal',
+  'Complete'
+),
+(
+  2,
+  'A+',
+  'None',
+  'None',
+  'None',
+  148,
+  42,
+  19.17,
+  'Normal',
+  'Complete'
+),
+(
+  3,
+  'B+',
+  'Peanuts',
+  'None',
+  'Antihistamine as needed',
+  154,
+  50,
+  21.08,
+  'Normal',
+  'Complete'
+),
+(
+  4,
+  'O-',
+  'None',
+  'Asthma',
+  'Inhaler as needed',
+  158,
+  52,
+  20.83,
+  'Normal',
+  'Complete'
+),
+(
+  5,
+  'AB+',
+  'Shellfish',
+  'None',
+  'None',
+  146,
+  43,
+  20.17,
+  'Normal',
+  'Complete'
+),
+(
+  6,
+  'A-',
+  'None',
+  'None',
+  'None',
+  151,
+  46,
+  20.17,
+  'Normal',
+  'Complete'
+),
+(
+  7,
+  'B-',
+  'Dust',
+  'Allergic rhinitis',
+  'Cetirizine as needed',
+  160,
+  55,
+  21.48,
+  'Normal',
+  'Complete'
+),
+(
+  8,
+  'O+',
+  'None',
+  'None',
+  'None',
+  143,
+  39,
+  19.07,
+  'Normal',
+  'Complete'
+),
+(
+  9,
+  'A+',
+  'None',
+  'None',
+  'None',
+  150,
+  47,
+  20.89,
+  'Normal',
+  'Complete'
+),
+(
+  10,
+  'AB-',
+  'Milk',
+  'None',
+  'Lactase as needed',
+  153,
+  48,
+  20.50,
+  'Normal',
+  'Complete'
+),
+(
+  11,
+  'B+',
+  'None',
+  'None',
+  'None',
+  162,
+  57,
+  21.72,
   'Normal',
   'Complete'
 )
