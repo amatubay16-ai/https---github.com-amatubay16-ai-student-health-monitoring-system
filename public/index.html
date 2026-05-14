@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Health Monitoring System</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <section id="loginScreen" class="login-screen">
+    <form id="loginForm" class="login-panel">
+      <div>
+        <p class="eyebrow">Secure Access</p>
+        <h1>Student Health Monitoring System</h1>
+      </div>
+
+      <label>
+        Account Type
+        <select name="role" required>
+          <option value="student">Student</option>
+          <option value="nurse">School Nurse</option>
+          <option value="admin">Admin</option>
+        </select>
+      </label>
+
+      <label>
+        Username
+        <input name="username" autocomplete="username" required>
+      </label>
+
+      <label>
+        <span id="passwordLabelText">Password</span>
+        <input name="password" type="password" autocomplete="current-password" required>
+      </label>
+
+      <button type="submit">Log In</button>
+      <p id="loginStatus" class="login-status" role="status"></p>
+
+      <div class="demo-accounts" aria-label="Demo accounts">
+        <strong>Demo accounts</strong>
+        <span>Student: student1 / student123</span>
+        <span>Nurse: nurse / nurse123</span>
+        <span>Admin: admin / admin123</span>
+      </div>
+    </form>
+  </section>
+
+  <header class="app-header">
+    <div>
+      <p class="eyebrow">School Clinic Management</p>
+      <h1>Student Health Monitoring System</h1>
+    </div>
+    <div class="session-panel" aria-label="Current account">
+      <div class="account-summary">
+        <span id="accountName">Not signed in</span>
+        <strong id="accountRole">Account</strong>
+      </div>
+      <label>
+        Student ID
+        <input id="studentIdInput" type="number" min="1" value="1">
+      </label>
+      <button id="loadAccountButton" type="button">Load Account</button>
+      <button id="logoutButton" class="secondary-button" type="button">Log Out</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <aside class="sidebar">
+      <div class="brand-mark">SH</div>
+      <nav aria-label="System sections">
+        <button class="nav-button is-active" data-view="recordsDashboardView" type="button">Records Dashboard</button>
+        <button class="nav-button" data-view="studentView" type="button">Student Account</button>
+        <button class="nav-button" data-view="nurseView" type="button">Nurse Workspace</button>
+        <button class="nav-button" data-view="adminView" type="button">Admin Console</button>
+      </nav>
+      <section class="access-card">
+        <h2>Access Rules</h2>
+        <p id="roleDescription">Students can view their own health record, clinic history, and nurse findings only.</p>
+      </section>
+    </aside>
+
+    <section class="workspace">
+      <div id="statusMessage" class="status" role="status">Ready.</div>
+
+      <section id="recordsDashboardView" class="view is-visible">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Records</p>
+            <h2>Records Dashboard</h2>
+          </div>
+          <button id="loadRecordsDashboardButton" type="button">Refresh Records</button>
+        </div>
+
+        <div id="recordsSummary" class="stat-grid"></div>
+
+        <div class="dashboard-grid">
+          <article class="panel panel-wide">
+            <h3>Student Records</h3>
+            <div id="dashboardStudentsList" class="record-list"></div>
+          </article>
+
+          <article class="panel panel-wide">
+            <h3>Health Records</h3>
+            <div id="dashboardHealthList" class="record-list"></div>
+          </article>
+
+          <article class="panel panel-wide">
+            <h3>Clinic Visits</h3>
+            <div id="dashboardVisitsList" class="record-list"></div>
+          </article>
+
+          <article class="panel panel-wide">
+            <h3>Medical Notes</h3>
+            <div id="dashboardNotesList" class="record-list"></div>
+          </article>
+        </div>
+      </section>
+
+      <section id="studentView" class="view">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Student</p>
+            <h2>My Health Account</h2>
+          </div>
+          <span class="permission-badge read">Read only</span>
+        </div>
+
+        <div class="dashboard-grid">
+          <article class="panel">
+            <h3>Health Record</h3>
+            <dl id="healthRecordDetails" class="details-list"></dl>
+          </article>
+
+          <article class="panel">
+            <h3>Clinic Visit History</h3>
+            <div id="clinicHistoryList" class="record-list"></div>
+          </article>
+
+          <article class="panel panel-wide">
+            <h3>Nurse Findings and Diagnoses</h3>
+            <div id="medicalNotesList" class="record-list"></div>
+          </article>
+        </div>
+      </section>
+
+      <section id="nurseView" class="view">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">School Nurse</p>
+            <h2>Clinical Workspace</h2>
+          </div>
+          <span class="permission-badge write">Add records only</span>
+        </div>
+
+        <div class="form-grid">
+          <form id="registerStudentForm" class="panel form-panel">
+            <h3>Register Student</h3>
+            <div class="field-row">
+              <label>Student Number<input name="studentNumber" required></label>
+              <label>Grade Level<input name="gradeLevel"></label>
+            </div>
+            <div class="field-row">
+              <label>First Name<input name="firstName" required></label>
+              <label>Last Name<input name="lastName" required></label>
+            </div>
+            <div class="field-row">
+              <label>Date of Birth<input name="dateOfBirth" type="date"></label>
+              <label>Sex<input name="sex"></label>
+            </div>
+            <div class="field-row">
+              <label>Section<input name="section"></label>
+              <label>Guardian Name<input name="guardianName"></label>
+              <label>Guardian Contact<input name="guardianContact"></label>
+            </div>
+            <button type="submit">Register Student</button>
+          </form>
+
+          <form id="clinicVisitForm" class="panel form-panel">
+            <h3>Record Checkup or Diagnosis</h3>
+            <label>Student ID<input name="studentId" type="number" min="1" required></label>
+            <label>Visit Date and Time<input name="visitDate" type="datetime-local" required></label>
+            <label>Reason<input name="reason" required></label>
+            <label>Findings<textarea name="symptoms" rows="3"></textarea></label>
+            <label>Diagnosis and Care Given<textarea name="treatment" rows="3"></textarea></label>
+            <label>Disposition<input name="disposition" placeholder="Returned to class, sent home, referred"></label>
+            <button type="submit">Save Clinic Visit</button>
+          </form>
+
+          <form id="medicalNoteForm" class="panel form-panel">
+            <h3>Add Medical Note</h3>
+            <label>Student ID<input name="studentId" type="number" min="1" required></label>
+            <label>Nurse Note<textarea name="note" rows="5" required></textarea></label>
+            <button type="submit">Add Note</button>
+          </form>
+        </div>
+      </section>
+
+      <section id="adminView" class="view">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Admin</p>
+            <h2>System Management</h2>
+          </div>
+          <span class="permission-badge full">Full CRUD</span>
+        </div>
+
+        <div class="action-bar">
+          <button id="loadStudentsButton" type="button">Load Students</button>
+          <button id="loadReportsButton" type="button">Generate Reports</button>
+        </div>
+
+        <div class="dashboard-grid">
+          <article class="panel panel-wide">
+            <h3>Students</h3>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Student No.</th>
+                    <th>Name</th>
+                    <th>Birth Date</th>
+                    <th>Sex</th>
+                    <th>Grade</th>
+                    <th>Section</th>
+                    <th>Guardian</th>
+                    <th>Contact</th>
+                    <th>Records</th>
+                    <th>Account</th>
+                  </tr>
+                </thead>
+                <tbody id="studentsTableBody"></tbody>
+              </table>
+            </div>
+          </article>
+
+          <article class="panel panel-wide">
+            <h3>Selected Student Account</h3>
+            <div id="adminStudentAccountDetails" class="admin-account-grid">
+              <p class="empty-state">Select View Account from the students table to show all student details and records.</p>
+            </div>
+          </article>
+
+          <form id="adminStudentForm" class="panel form-panel">
+            <h3>Create or Update Student</h3>
+            <label>Student ID for update<input name="studentId" type="number" min="1"></label>
+            <label>Student Number<input name="studentNumber" required></label>
+            <div class="field-row">
+              <label>First Name<input name="firstName" required></label>
+              <label>Last Name<input name="lastName" required></label>
+            </div>
+            <div class="field-row">
+              <label>Date of Birth<input name="dateOfBirth" type="date"></label>
+              <label>Sex<input name="sex"></label>
+            </div>
+            <div class="field-row">
+              <label>Grade Level<input name="gradeLevel"></label>
+              <label>Section<input name="section"></label>
+            </div>
+            <div class="field-row">
+              <label>Guardian Name<input name="guardianName"></label>
+              <label>Guardian Contact<input name="guardianContact"></label>
+            </div>
+            <div class="button-row">
+              <button type="submit">Save Student</button>
+              <button id="deleteStudentButton" class="danger-button" type="button">Delete Student</button>
+            </div>
+          </form>
+
+          <form id="healthRecordForm" class="panel form-panel">
+            <h3>Manage Health Record</h3>
+            <label>Student ID<input name="studentId" type="number" min="1" required></label>
+            <label>Blood Type<input name="bloodType" placeholder="O+, A-, AB+"></label>
+            <div class="field-row">
+              <label>Height cm<input name="heightCm" type="number" step="0.01"></label>
+              <label>Weight kg<input name="weightKg" type="number" step="0.01"></label>
+              <label>BMI<input name="bmi" type="number" step="0.01" readonly></label>
+            </div>
+            <div id="bmiResult" class="bmi-result">Enter height and weight to calculate BMI.</div>
+            <label>Allergies<textarea name="allergies" rows="2"></textarea></label>
+            <label>Chronic Conditions<textarea name="chronicConditions" rows="2"></textarea></label>
+            <label>Medications<textarea name="medications" rows="2"></textarea></label>
+            <label>Immunization Status<textarea name="immunizationStatus" rows="2"></textarea></label>
+            <div class="button-row">
+              <button type="submit">Save Health Record</button>
+              <button id="deleteHealthRecordButton" class="danger-button" type="button">Delete Health Record</button>
+            </div>
+          </form>
+
+          <form id="adminClinicVisitForm" class="panel form-panel">
+            <h3>Add, Update, or Delete Clinic Visit</h3>
+            <label>Visit ID for update/delete<input name="visitId" type="number" min="1"></label>
+            <label>Student ID for new visit<input name="studentId" type="number" min="1"></label>
+            <label>Visit Date and Time<input name="visitDate" type="datetime-local" required></label>
+            <label>Reason<input name="reason" required></label>
+            <label>Findings<textarea name="symptoms" rows="3"></textarea></label>
+            <label>Diagnosis and Care Given<textarea name="treatment" rows="3"></textarea></label>
+            <label>Disposition<input name="disposition" placeholder="Returned to class, sent home, referred"></label>
+            <div class="button-row">
+              <button type="submit">Save Clinic Visit</button>
+              <button id="deleteClinicVisitButton" class="danger-button" type="button">Delete Clinic Visit</button>
+            </div>
+          </form>
+
+          <form id="adminMedicalNoteForm" class="panel form-panel">
+            <h3>Add, Update, or Delete Medical Note</h3>
+            <label>Note ID for update/delete<input name="noteId" type="number" min="1"></label>
+            <label>Student ID for new note<input name="studentId" type="number" min="1"></label>
+            <label>Medical Note<textarea name="note" rows="5" required></textarea></label>
+            <div class="button-row">
+              <button type="submit">Save Medical Note</button>
+              <button id="deleteMedicalNoteButton" class="danger-button" type="button">Delete Medical Note</button>
+            </div>
+          </form>
+
+          <article class="panel">
+            <h3>Report Summary</h3>
+            <dl id="reportDetails" class="details-list"></dl>
+          </article>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
