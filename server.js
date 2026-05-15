@@ -109,39 +109,52 @@ function toNull(value) {
   return value === undefined || value === "" ? null : value;
 }
 
+function bodyValue(body, ...keys) {
+  for (const key of keys) {
+    if (body[key] !== undefined) {
+      return body[key];
+    }
+  }
+
+  return undefined;
+}
+
 function studentPayload(body) {
   return {
-    student_number: toNull(body.studentNumber),
-    first_name: toNull(body.firstName),
-    last_name: toNull(body.lastName),
-    date_of_birth: toNull(body.dateOfBirth),
+    student_number: toNull(bodyValue(body, "studentNumber", "student_number")),
+    first_name: toNull(bodyValue(body, "firstName", "first_name")),
+    last_name: toNull(bodyValue(body, "lastName", "last_name")),
+    date_of_birth: toNull(bodyValue(body, "dateOfBirth", "date_of_birth")),
     sex: toNull(body.sex),
-    grade_level: toNull(body.gradeLevel),
+    grade_level: toNull(bodyValue(body, "gradeLevel", "grade_level")),
     section: toNull(body.section),
-    guardian_name: toNull(body.guardianName),
-    guardian_contact: toNull(body.guardianContact),
+    guardian_name: toNull(bodyValue(body, "guardianName", "guardian_name")),
+    guardian_contact: toNull(bodyValue(body, "guardianContact", "guardian_contact")),
   };
 }
 
 function healthPayload(body) {
-  const bmi = body.bmi || calculateBmi(body.heightCm, body.weightKg);
+  const heightCm = bodyValue(body, "heightCm", "height_cm");
+  const weightKg = bodyValue(body, "weightKg", "weight_kg");
+  const bmi = bodyValue(body, "bmi") || calculateBmi(heightCm, weightKg);
 
   return {
-    blood_type: toNull(body.bloodType),
+    blood_type: toNull(bodyValue(body, "bloodType", "blood_type")),
     allergies: toNull(body.allergies),
-    chronic_conditions: toNull(body.chronicConditions),
+    chronic_conditions: toNull(bodyValue(body, "chronicConditions", "chronic_conditions")),
     medications: toNull(body.medications),
-    height_cm: toNull(body.heightCm),
-    weight_kg: toNull(body.weightKg),
+    height_cm: toNull(heightCm),
+    weight_kg: toNull(weightKg),
     bmi: toNull(bmi),
-    immunization_status: toNull(body.immunizationStatus),
+    bmi_category: bmiCategory(bmi),
+    immunization_status: toNull(bodyValue(body, "immunizationStatus", "immunization_status")),
   };
 }
 
 function clinicVisitPayload(body) {
   return {
-    student_id: toNull(body.studentId),
-    visit_date: toNull(body.visitDate),
+    student_id: toNull(bodyValue(body, "studentId", "student_id")),
+    visit_date: toNull(bodyValue(body, "visitDate", "visit_date")),
     reason: toNull(body.reason),
     symptoms: toNull(body.symptoms),
     treatment: toNull(body.treatment),
@@ -438,6 +451,7 @@ app.put("/students/:id/health-record", asyncRoute(async (req, res) => {
     health.height_cm,
     health.weight_kg,
     health.bmi,
+    health.bmi_category,
     health.immunization_status,
   ];
 
@@ -445,15 +459,15 @@ app.put("/students/:id/health-record", asyncRoute(async (req, res) => {
     await command(
       `UPDATE health_records
        SET blood_type = ?, allergies = ?, chronic_conditions = ?, medications = ?,
-           height_cm = ?, weight_kg = ?, bmi = ?, immunization_status = ?
+           height_cm = ?, weight_kg = ?, bmi = ?, bmi_category = ?, immunization_status = ?
        WHERE id = ?`,
       [...values, existing[0].id]
     );
   } else {
     await command(
       `INSERT INTO health_records
-       (student_id, blood_type, allergies, chronic_conditions, medications, height_cm, weight_kg, bmi, immunization_status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       (student_id, blood_type, allergies, chronic_conditions, medications, height_cm, weight_kg, bmi, bmi_category, immunization_status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [req.params.id, ...values]
     );
   }
@@ -580,15 +594,22 @@ app.delete("/medical-notes/:id", asyncRoute(async (req, res) => {
   });
 }));
 
-app.get("/records-dashboard", asyncRoute(async (_req, res) => {
+app.get("/records-dashboard", asyncRoute(async (req, res) => {
+  const dashboardStudentId = req.user.role === "student" ? req.user.studentId : null;
+  const studentWhere = dashboardStudentId ? "WHERE s.id = ?" : "";
+  const healthWhere = dashboardStudentId ? "WHERE hr.student_id = ?" : "";
+  const visitWhere = dashboardStudentId ? "WHERE cv.student_id = ?" : "";
+  const noteWhere = dashboardStudentId ? "WHERE mn.student_id = ?" : "";
+  const scopeParams = dashboardStudentId ? [dashboardStudentId] : [];
+
   const [summary] = await query(`
     SELECT
-      (SELECT COUNT(*) FROM students) AS totalStudents,
-      (SELECT COUNT(*) FROM health_records) AS totalHealthRecords,
-      (SELECT COUNT(*) FROM clinic_visits) AS totalClinicVisits,
-      (SELECT COUNT(*) FROM medical_notes) AS totalMedicalNotes,
-      (SELECT AVG(bmi) FROM health_records WHERE bmi IS NOT NULL) AS averageBmi
-  `);
+      (SELECT COUNT(*) FROM students s ${studentWhere}) AS totalStudents,
+      (SELECT COUNT(*) FROM health_records hr ${healthWhere}) AS totalHealthRecords,
+      (SELECT COUNT(*) FROM clinic_visits cv ${visitWhere}) AS totalClinicVisits,
+      (SELECT COUNT(*) FROM medical_notes mn ${noteWhere}) AS totalMedicalNotes,
+      (SELECT AVG(bmi) FROM health_records hr ${dashboardStudentId ? `${healthWhere} AND` : "WHERE"} bmi IS NOT NULL) AS averageBmi
+  `, [...scopeParams, ...scopeParams, ...scopeParams, ...scopeParams, ...scopeParams]);
 
   const students = await query(`
     SELECT
@@ -600,33 +621,37 @@ app.get("/records-dashboard", asyncRoute(async (_req, res) => {
     LEFT JOIN health_records hr ON hr.student_id = s.id
     LEFT JOIN clinic_visits cv ON cv.student_id = s.id
     LEFT JOIN medical_notes mn ON mn.student_id = s.id
+    ${studentWhere}
     GROUP BY s.id
     ORDER BY s.updated_at DESC, s.id DESC
-  `);
+  `, scopeParams);
 
   const healthRecords = await query(`
     SELECT hr.*, s.first_name, s.last_name, s.student_number
     FROM health_records hr
     JOIN students s ON s.id = hr.student_id
+    ${healthWhere}
     ORDER BY hr.updated_at DESC, hr.id DESC
     LIMIT 20
-  `);
+  `, scopeParams);
 
   const clinicVisits = await query(`
     SELECT cv.*, s.first_name, s.last_name, s.student_number
     FROM clinic_visits cv
     JOIN students s ON s.id = cv.student_id
+    ${visitWhere}
     ORDER BY cv.visit_date DESC, cv.id DESC
     LIMIT 20
-  `);
+  `, scopeParams);
 
   const medicalNotes = await query(`
     SELECT mn.*, s.first_name, s.last_name, s.student_number
     FROM medical_notes mn
     JOIN students s ON s.id = mn.student_id
+    ${noteWhere}
     ORDER BY mn.created_at DESC, mn.id DESC
     LIMIT 20
-  `);
+  `, scopeParams);
 
   res.json({ summary, students, healthRecords, clinicVisits, medicalNotes });
 }));
